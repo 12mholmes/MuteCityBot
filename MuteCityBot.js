@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const bot = new Discord.Client();
-//const config = require('./config.json');
-var muteCityPath = 'Path/To/Mute/City.mp3';
+const config = require('./config.json');
+var muteCityPath = config.mutepath; 
 var dispatcher;
 var connection;
 
@@ -45,4 +45,4 @@ bot.on('voiceStateUpdate', (oldMember, newMember) => {
 	}
 });
 
-bot.login('your token')
+bot.login(config.token);

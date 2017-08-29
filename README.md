@@ -1,2 +1,4 @@
 # MuteCityBot
-Discord bot for afk channel
+Discord bot for AFK Channel.
+Uses Discord.js
+
