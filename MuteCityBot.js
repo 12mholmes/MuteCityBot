@@ -121,8 +121,8 @@ bot.on("message", (message) => {
 	         message.channel.send("Shuffle Enabled!")
 	      }
 	      else {
-	      	message.channel.send("Music changed to " + currName + "!")
 	      	SetCurrent(musicChoice);
+	      	message.channel.send("Music changed to " + currName + "!")
 		shuffle = false;
 	      }
 
