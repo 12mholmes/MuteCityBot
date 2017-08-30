@@ -5,16 +5,32 @@ var currPath = config.music[0].path;
 var currName = config.music[0].name;
 var currGame = config.music[0].game;
 var active = true;
+var shuffle = false;
 var dispatcher;
 var connection;
 
+function SetCurrent(num) {
+      currPath = config.music[num].path;
+      currGame = config.music[num].game;
+      currName = config.music[num].name;
+}
+
+//bug fixed in discord.js develop: https://github.com/hydrabolt/discord.js/issues/1831
+function SetPlayedGame(gameName) {
+	bot.user.setPresence({ game: { name: gameName, type: 0 } })
+}
+
+
 function PlayMuteCity() {
 	if(connection !== null) {
+		if(shuffle) {
+		  SetCurrent(Math.floor(Math.random() * config.music.length));
+		}
 		dispatcher = connection.playFile(currPath);
-		bot.user.setGame(currGame);
+		SetPlayedGame(currGame);
 		dispatcher.on('end', () => {
 			if(connection !== null) {
-				PlayMuteCity(connection);
+				PlayMuteCity();
 			}
 		})
 	}
@@ -29,7 +45,7 @@ function DisconnectFromVoice() {
 
 bot.on("ready", () => {
 	console.log('Bot started');
-	bot.user.setGame(config.prefix);
+	SetPlayedGame(config.prefix);
 });
 
 bot.on("message", (message) => {
@@ -62,6 +78,7 @@ bot.on("message", (message) => {
     if(!active) {
       active = true;
       message.channel.send("Mute City Bot active!");
+      SetPlayedGame(config.prefix);
     }
     else {
       message.channel.send("Mute City Bot already active");
@@ -74,7 +91,7 @@ bot.on("message", (message) => {
       if(bot.voiceConnections.size !== 0) {
 	      DisconnectFromVoice();
       }
-      bot.user.setGame("disabled (" + config.prefix + ")");
+      SetPlayedGame("disabled (" + config.prefix + ")");
     }
     else {
       message.channel.send("Mute City Bot already disabled");
@@ -87,16 +104,28 @@ bot.on("message", (message) => {
       for(var i = 0; i < config.music.length; i++) {
 	      musicMessage += ("[" + i + "]\""+ config.music[i].name + "\" ")
       }
+      musicMessage += ("[" + i + "]\"Shuffle All\"");
+      if(shuffle) {
+      musicMessage += "\nCurrently Shuffling";
+      }
+      else {
       musicMessage += "\nCurrently selected: " + currName;
+      }
       message.channel.send(musicMessage);
     }
     else {
       musicChoice = parseInt(args[0]);
-      if(!isNaN(musicChoice) && musicChoice < config.music.length) {
-	      currPath = config.music[musicChoice].path;
-	      currGame = config.music[musicChoice].game;
-	      currName = config.music[musicChoice].name;
-	      message.channel.send("Music changed to " + currName + "!")
+      if(!isNaN(musicChoice) && musicChoice <= config.music.length) {
+	      if(musicChoice == config.music.length) {
+	         shuffle = true;
+	         message.channel.send("Shuffle Enabled!")
+	      }
+	      else {
+	      	message.channel.send("Music changed to " + currName + "!")
+	      	SetCurrent(musicChoice);
+		shuffle = false;
+	      }
+
       }
       else {
 	      message.channel.send("Music choice invalid")
@@ -127,6 +156,7 @@ bot.on('voiceStateUpdate', (oldMember, newMember) => {
 		//User leaves voice channel
 		console.log('exit voice chann');
 		DisconnectFromVoice();
+		SetPlayedGame(config.prefix);
 	}
 });
 
