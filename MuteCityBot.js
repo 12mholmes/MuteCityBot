@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const bot = new Discord.Client();
 const config = require('./config.json');
 var currPath = config.music[0].path; 
-var currTitle = config.music[0].name;
+var currName = config.music[0].name;
 var currGame = config.music[0].game;
 var active = true;
 var dispatcher;
@@ -11,6 +11,7 @@ var connection;
 function PlayMuteCity() {
 	if(connection !== null) {
 		dispatcher = connection.playFile(currPath);
+		bot.user.setGame(currGame);
 		dispatcher.on('end', () => {
 			if(connection !== null) {
 				PlayMuteCity(connection);
@@ -28,9 +29,10 @@ function DisconnectFromVoice() {
 
 bot.on("ready", () => {
 	console.log('Bot started');
+	bot.user.setGame(config.prefix);
 });
 
-client.on("message", async message => {
+bot.on("message", (message) => {
   // This event will run on every single message received, from any channel or DM.
   
   // ignore other bots
@@ -49,7 +51,7 @@ client.on("message", async message => {
   
   // Let's go with a few common example commands! Feel free to delete or change those.
   
-  if(command === "" OR command === "help") {
+  if(command === "" || command === "help") {
     // Calculates ping between sending a message and editing it, giving a nice round-trip latency.
     // The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
     sayMessage = "Possible Commands\nhelp: brings up this prompt\non: turn on the bot\noff: disable the bot\nmusic <number>: sets the music choice"
@@ -72,6 +74,7 @@ client.on("message", async message => {
       if(bot.voiceConnections.size !== 0) {
 	      DisconnectFromVoice();
       }
+      bot.user.setGame("disabled (" + config.prefix + ")");
     }
     else {
       message.channel.send("Mute City Bot already disabled");
@@ -79,7 +82,26 @@ client.on("message", async message => {
   }
 
   if(command === "music") {
-    message.channel.send(args[0]);
+    if(args[0] === undefined) {
+      musicMessage = "Possbile music choices include: ";
+      for(var i = 0; i < config.music.length; i++) {
+	      musicMessage += ("[" + i + "]\""+ config.music[i].name + "\" ")
+      }
+      musicMessage += "\nCurrently selected: " + currName;
+      message.channel.send(musicMessage);
+    }
+    else {
+      musicChoice = parseInt(args[0]);
+      if(!isNaN(musicChoice) && musicChoice < config.music.length) {
+	      currPath = config.music[musicChoice].path;
+	      currGame = config.music[musicChoice].game;
+	      currName = config.music[musicChoice].name;
+	      message.channel.send("Music changed to " + currName + "!")
+      }
+      else {
+	      message.channel.send("Music choice invalid")
+      }
+    }
   }
 })
 
