@@ -1,0 +1,5 @@
+*.mp3
+node_modules/
+nohup.out
+package-lock.json
+package.json
