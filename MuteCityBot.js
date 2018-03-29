@@ -1,7 +1,8 @@
 const Discord = require('discord.js');
 const bot = new Discord.Client();
 const config = require('./config.json');
-var blacklist = {};
+const fs = require('fs');
+var blacklist = require('./blacklist.json');
 var currPath = config.music[0].path; 
 var currName = config.music[0].name;
 var currGame = config.music[0].game;
@@ -97,24 +98,30 @@ bot.on("message", (message) => {
 
   if(command === "blacklist") {
     var newid = message.author.id;
+    var blacklistChanged = false;
     if(args[0] === "on") {
       //add user to blacklist
       if(blacklist[newid]) {
         message.channel.send("You're already on the blacklist");
       } else {
         blacklist[newid] = true;
+        blacklistChanged = true;
         message.channel.send("You're now blacklisted");
       }
     } else if (args[0] === "off") {
       //remove user from blacklist
       if(blacklist[newid]) {
         delete blacklist[newid];
+        blacklistChanged = true;
         message.channel.send("Removed from blacklist");
       } else {
         message.channel.send("You're not currently blacklisted");
       }
     } else {
       message.channel.send("Usage: blacklist <on/off>\nThis will disallow/allow music to be played while you're in the channel");
+    }
+    if(blacklistChanged) {
+     fs.writeFile('./blacklist.json', JSON.stringify(blacklist));
     }
   }
 
