@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const bot = new Discord.Client();
 const config = require('./config.json');
+var blacklist = {};
 var currPath = config.music[0].path; 
 var currName = config.music[0].name;
 var currGame = config.music[0].game;
@@ -65,12 +66,8 @@ bot.on("message", (message) => {
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
   
-  // Let's go with a few common example commands! Feel free to delete or change those.
-  
   if(command === "" || command === "help") {
-    // Calculates ping between sending a message and editing it, giving a nice round-trip latency.
-    // The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
-    sayMessage = "Possible Commands\nhelp: brings up this prompt\non: turn on the bot\noff: disable the bot\nmusic <number>: sets the music choice"
+    sayMessage = "Possible Commands\nhelp: brings up this prompt\non: turn on the bot\noff: disable the bot\nmusic <number>: sets the music choice\nblacklist <on/off>: when enabled, will not play music while you're in the channel"
     message.channel.send(sayMessage);
   }
   
@@ -95,6 +92,29 @@ bot.on("message", (message) => {
     }
     else {
       message.channel.send("Mute City Bot already disabled");
+    }
+  }
+
+  if(command === "blacklist") {
+    var newid = message.author.id;
+    if(args[0] === "on") {
+      //add user to blacklist
+      if(blacklist[newid]) {
+        message.channel.send("You're already on the blacklist");
+      } else {
+        blacklist[newid] = true;
+        message.channel.send("You're now blacklisted");
+      }
+    } else if (args[0] === "off") {
+      //remove user from blacklist
+      if(blacklist[newid]) {
+        delete blacklist[newid];
+        message.channel.send("Removed from blacklist");
+      } else {
+        message.channel.send("You're not currently blacklisted");
+      }
+    } else {
+      message.channel.send("Usage: blacklist <on/off>\nThis will disallow/allow music to be played while you're in the channel");
     }
   }
 
@@ -141,10 +161,33 @@ bot.on('voiceStateUpdate', (oldMember, newMember) => {
 		return;
 	}
 
-	if(newUserChannel && newUserChannel.name === 'Mute City' && bot.voiceConnections.size === 0) {
+        // If blacklisted member leaves afk, and someone is still afk play music
+        if(blacklist[oldMember.id] && oldUserChannel && oldUserChannel.name === 'Mute City' && oldUserChannel.members.size !== 0) {
+          var shouldJoin = true;
+          var voiceMembers = oldUserChannel.members.array();
+          for(var i = 0; i < voiceMembers.length; i++) {
+            if(blacklist[voiceMembers[i].id]) {
+              shouldJoin = false;
+              break;
+            }
+          }
+          if(shouldJoin) {
+            oldUserChannel.join().then(connect => {
+              connection = connect;
+              bot.guilds.first().member(bot.user).setMute(false);
+              PlayMuteCity();
+            }).catch(console.log);
+          }
+        } else if(newUserChannel && newUserChannel.name === 'Mute City') {
 		console.log('enter voice chann');
-		//User joins voice cahnnel
-		if(newMember.voiceChannel.name === 'Mute City' && bot.voiceConnections.size === 0) {
+                if(blacklist[newMember.id]) {
+                  console.log('Blacklisted member, do not join/leave channel now');
+                  if(bot.voiceConnections.size === 1) {
+                    DisconnectFromVoice();
+                    SetPlayedGame(config.prefix);
+                  }
+                } else if(newMember.voiceChannel.name === 'Mute City' && bot.voiceConnections.size === 0) {
+		        //User joins voice cahnnel
 			console.log('enter mute city');
 			newMember.voiceChannel.join().then(connect => {
 				connection = connect;
